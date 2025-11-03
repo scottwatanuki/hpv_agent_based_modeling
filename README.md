@@ -98,27 +98,38 @@ cd hpv_agent_based_modeling
 pip install -r requirements.txt
 ```
 
+### Quick start (baseline)
+1) Verify data exists at `data/processed/ga_age_sex_cleaned.csv`
+  - If missing, place the provided CSV there. Expected columns: `Age Group, Male_Estimate, Female_Estimate`.
+2) Run baseline simulation and produce outputs under `results/`:
+```bash
+python src/simulate_hpvm_abm.py --coverage 0.7 --efficacy 0.9 --timesteps 120 --seed 42
+```
+3) Outputs:
+  - Figure: `results/figures/prevalence_baseline.png`
+  - Summary CSV: `results/summary_stats_baseline.csv`
+
 ---
 
 ## ▶️ Usage
 
 ### Run the baseline simulation
 ```bash
-python src/simulate_hpvm_abm.py --coverage 0.7 --efficacy 0.9 --timesteps 120
+python src/simulate_hpvm_abm.py --coverage 0.7 --efficacy 0.9 --timesteps 120 --seed 42
 ```
 
 ### Example (inside Python)
 ```python
 from src.simulate_hpvm_abm import run_simulation
+from src.analysis_utils import write_prevalence_outputs
 
-results = run_simulation(coverage=0.7, efficacy=0.9, steps=120)
+results = run_simulation(coverage=0.7, efficacy=0.9, steps=120, seed=42)
 results.plot_prevalence_curve()
+write_prevalence_outputs(results.prevalence, prefix="baseline")
 ```
 
 ### Generate scenario comparisons
-```bash
-python src/vaccination_scenarios.py --scenarios scenario_config.json
-```
+Coming soon (scaffold under development).
 
 ---
 
@@ -129,6 +140,26 @@ python src/vaccination_scenarios.py --scenarios scenario_config.json
 - **Summary statistics CSV** for downstream analysis  
 
 All output figures and tables are saved under `results/`.
+
+For the baseline quick start, you will see:
+- `results/figures/prevalence_baseline.png`
+- `results/summary_stats_baseline.csv`
+
+## 📁 Current implemented subset (Milestone 1)
+```
+hpv_agent_based_modeling/
+├── data/
+│   └── processed/
+│       └── ga_age_sex_cleaned.csv
+├── src/
+│   ├── initialize_population.py
+│   ├── simulate_hpvm_abm.py
+│   └── analysis_utils.py
+└── results/
+  ├── figures/
+  │   └── prevalence_baseline.png
+  └── summary_stats_baseline.csv
+```
 
 ---
 

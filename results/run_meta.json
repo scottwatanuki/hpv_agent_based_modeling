@@ -1,0 +1,15 @@
+{
+  "entrypoint": "simulate_hpvm_abm.py",
+  "coverage": 0.7,
+  "efficacy": 0.9,
+  "timesteps": 5,
+  "population_size": 1000,
+  "seed": 1,
+  "beta": 0.02,
+  "clearance_prob": 0.05,
+  "partners_per_step": 5,
+  "timestamp": "2025-11-03T21:46:26.718103+00:00",
+  "python_version": "3.13.2",
+  "platform": "macOS-26.0.1-arm64-arm-64bit-Mach-O",
+  "git_sha": "59ee94dfd338ad8195d4ac9d586544ca4f0d0cc7"
+}

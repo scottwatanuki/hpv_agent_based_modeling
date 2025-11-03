@@ -1,0 +1,8 @@
+# Python >=3.9
+numpy~=1.26
+pandas~=2.2
+networkx~=3.2
+matplotlib~=3.8
+seaborn~=0.13
+tqdm~=4.66
+mesa~=2.2
