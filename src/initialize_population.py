@@ -112,5 +112,19 @@ def synthesize_population(
     pop_df = pd.DataFrame(rows, columns=["id", "age", "sex", "age_group", "vaccinated"])
     return Population(df=pop_df)
 
+#add into function above
+AGE_GROUP_COVERAGE = {
+    "13-17": 0.615,
+    "18-26": 0.516,
+}
+
+def _coverage_for_age(age: int) -> float:
+    if 13 <= age <= 17:
+        return AGE_GROUP_COVERAGE["13-17"]
+    elif 18 <= age <= 26:
+        return AGE_GROUP_COVERAGE["18-26"]
+    else:
+        return 0.0  # or some base coverage
+
 
 __all__ = ["Population", "synthesize_population"]

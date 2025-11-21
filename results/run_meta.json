@@ -2,14 +2,26 @@
   "entrypoint": "simulate_hpvm_abm.py",
   "coverage": 0.7,
   "efficacy": 0.9,
-  "timesteps": 5,
+  "timesteps": 120,
   "population_size": 1000,
-  "seed": 1,
-  "beta": 0.02,
-  "clearance_prob": 0.05,
+  "seed": 42,
+  "beta_by_age_band": [
+    0.0,
+    0.035,
+    0.02,
+    0.015,
+    0.01
+  ],
+  "clearance_by_age_band": [
+    0.0,
+    0.03,
+    0.025,
+    0.02,
+    0.015
+  ],
   "partners_per_step": 5,
-  "timestamp": "2025-11-03T21:46:26.718103+00:00",
-  "python_version": "3.13.2",
-  "platform": "macOS-26.0.1-arm64-arm-64bit-Mach-O",
-  "git_sha": "59ee94dfd338ad8195d4ac9d586544ca4f0d0cc7"
+  "timestamp": "2025-11-19T18:31:32.027333+00:00",
+  "python_version": "3.10.16",
+  "platform": "macOS-10.16-x86_64-i386-64bit",
+  "git_sha": "adc099cfbe1d40cdae5aab6d855e86463d9e7f78"
 }
