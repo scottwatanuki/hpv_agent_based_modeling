@@ -24,6 +24,9 @@ class Scenario:
     timesteps: int
     seed: Optional[int] = None
     population_size: int = 1000
+    # optional per-race mappings
+    coverage_by_race: Optional[Dict[str, float]] = None
+    screening_by_race: Optional[Dict[str, float]] = None
 
     @staticmethod
     def from_dict(d: Dict[str, Any]) -> "Scenario":
@@ -34,6 +37,8 @@ class Scenario:
             timesteps=int(d.get("timesteps", 120)),
             seed=(None if d.get("seed") is None else int(d.get("seed"))),
             population_size=int(d.get("population_size", 1000)),
+            coverage_by_race=d.get("coverage_by_race"),
+            screening_by_race=d.get("screening_by_race"),
         )
 
 
@@ -56,6 +61,8 @@ def run_scenarios(scenarios: List[Scenario]) -> pd.DataFrame:
             efficacy=sc.efficacy,
             steps=sc.timesteps,
             population_size=sc.population_size,
+            coverage_by_race=sc.coverage_by_race,
+            screening_by_race=sc.screening_by_race,
             seed=sc.seed,
         )
         paths = write_prevalence_outputs(res.prevalence, prefix=sc.name)

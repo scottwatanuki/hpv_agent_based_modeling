@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Dict
 
 import numpy as np
 import pandas as pd
@@ -12,7 +12,7 @@ DATA_PATH = (
     Path(__file__).resolve().parents[1]
     / "data"
     / "processed"
-    / "ga_age_sex_cleaned.csv"
+    / "atl_ga_age_sex_cleaned.csv"
 )
 
 
@@ -85,6 +85,14 @@ def synthesize_population(
     *,
     csv_path: Optional[Path] = None,
     seed: Optional[int] = None,
+    # Optional per-race inputs. If provided, `race_dist` is a mapping
+    # race -> proportion (must sum to 1 or be normalized). `coverage_by_race`
+    # maps race -> vaccination coverage (0-1). `screening_by_race` maps
+    # race -> annual screening uptake (0-1). All are optional and
+    # backward-compatible with existing calls.
+    race_dist: Optional[Dict[str, float]] = None,
+    coverage_by_race: Optional[Dict[str, float]] = None,
+    screening_by_race: Optional[Dict[str, float]] = None,
 ) -> Population:
     """Create a synthetic population of size n using the ACS age-sex distribution.
 
@@ -101,15 +109,51 @@ def synthesize_population(
     strata = dist[["age_group", "sex", "weight"]].values
     choices = np.random.choice(len(strata), size=n, p=dist["weight"].values)
 
+    # Prepare race sampling if provided
+    race_names = None
+    race_probs = None
+    if race_dist is not None:
+        race_items = list(race_dist.items())
+        race_names = [r for r, _ in race_items]
+        probs = np.array([p for _, p in race_items], dtype=float)
+        if probs.sum() > 0:
+            probs = probs / probs.sum()
+        else:
+            probs = np.ones_like(probs) / len(probs)
+        race_probs = probs
+
     rows = []
     for idx, stratum_idx in enumerate(choices):
         age_group, sex, _w = strata[stratum_idx]
         lo, hi = _parse_age_group_to_range(str(age_group))
         age = int(np.random.randint(lo, hi + 1))
-        vaccinated = bool(np.random.rand() < coverage)
-        rows.append((idx, age, str(sex), str(age_group), vaccinated))
+        # assign race (if race_dist provided)
+        if race_names is not None:
+            race = str(np.random.choice(race_names, p=race_probs))
+        else:
+            race = "Unknown"
 
-    pop_df = pd.DataFrame(rows, columns=["id", "age", "sex", "age_group", "vaccinated"])
+        # determine vaccination probability for this agent (race-specific override)
+        if coverage_by_race is not None and race in coverage_by_race:
+            vac_prob = float(coverage_by_race[race])
+        else:
+            vac_prob = coverage
+
+        vaccinated = bool(np.random.rand() < vac_prob)
+
+        # screening uptake given as annual probability by race -> convert to monthly
+        screening_monthly = 0.0
+        if screening_by_race is not None and race in screening_by_race:
+            annual = float(screening_by_race[race])
+            # convert to monthly (approx)
+            screening_monthly = annual / 12.0
+
+        rows.append((idx, age, str(sex), str(age_group), vaccinated, race, screening_monthly))
+
+    pop_df = pd.DataFrame(
+        rows,
+        columns=["id", "age", "sex", "age_group", "vaccinated", "race", "screening_prob_monthly"],
+    )
     return Population(df=pop_df)
 
 #add into function above

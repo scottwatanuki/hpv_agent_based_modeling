@@ -1,0 +1,16 @@
+{
+  "entrypoint": "vaccination_scenarios.py",
+  "name": "race_stratified_vaccination",
+  "coverage": 0.6,
+  "efficacy": 0.9,
+  "timesteps": 300,
+  "population_size": 1500,
+  "seed": 43,
+  "beta": 0.02,
+  "clearance_prob": 0.05,
+  "partners_per_step": 5,
+  "timestamp": "2025-11-28T17:18:57.790026+00:00",
+  "python_version": "3.12.4",
+  "platform": "macOS-10.16-x86_64-i386-64bit",
+  "git_sha": "5989c8fed128bbf08e9a169c7c973fdab6df6464"
+}

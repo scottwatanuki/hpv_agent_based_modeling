@@ -1,0 +1,4 @@
+name,coverage,efficacy,timesteps,population_size,seed,figure,summary_csv
+baseline_uniform,0.6,0.9,300,1500,42,/Users/haileytoeppner/Projects/hpv_agent_model/hpv_agent_based_modeling/results/figures/prevalence_baseline_uniform.png,/Users/haileytoeppner/Projects/hpv_agent_model/hpv_agent_based_modeling/results/summary_stats_baseline_uniform.csv
+race_stratified_vaccination,0.6,0.9,300,1500,43,/Users/haileytoeppner/Projects/hpv_agent_model/hpv_agent_based_modeling/results/figures/prevalence_race_stratified_vaccination.png,/Users/haileytoeppner/Projects/hpv_agent_model/hpv_agent_based_modeling/results/summary_stats_race_stratified_vaccination.csv
+race_stratified_with_screening,0.6,0.9,300,1500,44,/Users/haileytoeppner/Projects/hpv_agent_model/hpv_agent_based_modeling/results/figures/prevalence_race_stratified_with_screening.png,/Users/haileytoeppner/Projects/hpv_agent_model/hpv_agent_based_modeling/results/summary_stats_race_stratified_with_screening.csv
