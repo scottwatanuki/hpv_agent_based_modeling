@@ -9,26 +9,31 @@ from src.initialize_population import synthesize_population, Population
 import numpy as np
 import matplotlib.pyplot as plt
 
-# --- 1. POPULATION STRUCTURE DEFINITIONS ---
-
-# Age bands
 AGE_BANDS = [
     (0, 14),   # 0
-    (15, 24),  # 1 (Sexually active start)
+    (15, 24),  # 1
     (25, 34),  # 2
-    (35, 44),  # 3
-    (45, 120), # 4
+    (35, 44),  #
+    (45, 100), # 4
 ]
 NUM_AGE_BANDS = len(AGE_BANDS)
 
-# Sexual Activity Classes (Based on partner acquisition rates, simplified from NATSAL/POLYMOD) - Walker et Al. source will talk ab in paper
+# Sexual Activity Classes (Based on partner acquisition rates, simplified from NATSAL/POLYMOD) - Walker et Al. source will talk ab in report
 # 0: Low, 1: Moderate, 2: Mod-High, 3: High
 SEX_ACTIVITY_CLASSES = ["Low", "Mod", "Mod-High", "High"]
 NUM_SEX_CLASSES = len(SEX_ACTIVITY_CLASSES)
 
+<<<<<<< HEAD
 # Distribution of population across the 4 sexual activity classes (e.g., 60% Low, 30% Mod, 7% Mod-High, 3% High)
 # This is a critical input parameter based on survey data (like NATSAL/NSSHB)
 SEX_ACTIVITY_DISTRIBUTION = np.array([0.124577, 0.732530, 0.112282, 0.030611])
+=======
+
+# has been calculated from combined NSFG data (2008-2019) for ages 15-44 --> needs to be calibrated
+SEX_ACTIVITY_DISTRIBUTION = np.array([0.54, 0.23, 0.17, 0.06])
+# Normalize to ensure it sums to 1
+SEX_ACTIVITY_DISTRIBUTION = SEX_ACTIVITY_DISTRIBUTION / SEX_ACTIVITY_DISTRIBUTION.sum()
+>>>>>>> ed4ecb7a (Working on calibration transmission and clearance; add age-stratified initial seeding and per-age prevalence reporting)
 
 
 def age_to_band_index(age: int) -> int:
@@ -38,24 +43,22 @@ def age_to_band_index(age: int) -> int:
             return i
     return NUM_AGE_BANDS - 1
 
-# --- 2. AGE-SPECIFIC & NATURAL HISTORY PARAMETERS ---
-
-# 1. TRANSMISSION RATE STRUCTURE (ALPHA_AGE): Same as original
+# transmission rate scaling factor (C) to calibrate overall beta --> needs to be calibrated
 RELATIVE_CONTACT_BY_AGE_BAND = np.array([0.00, 1.00, 0.70, 0.40, 0.20])
 
-# 2. CLEARANCE RATE (GAMMA): Same as original
-CLEARANCE_BY_AGE_BAND = np.array([0.00, 0.060, 0.043, 0.035, 0.025])
+# clearance - some hpv resolves on its own
+# Reduced from 0.06 to allow more endemic persistence; 6% was too aggressive for 25-year models
+CLEARANCE_BY_AGE_BAND = np.array([0.00, 0.015, 0.010, 0.008, 0.005])
 
-# 3. CANCER PROGRESSION PARAMETER (Tuning knob for calibration)
-# We start with the value derived from the 20-year latency period (0.004167) as a baseline,
-# but this must be recalibrated after mixing is introduced.
-PROB_PROGRESS_TO_CANCER = 0.0002 # Set lower to account for the log factor and prevent explosion
+# cancer progression probability per month of infection duration --> needs to be calibrated
+# calculated from annual progression rate in atlanta from current data
+PROB_PROGRESS_TO_CANCER = 0.004167
 
-# --- 3. MIXING MATRIX PARAMETERS (Walker et al., 2012) ---
+# implementation of Walker et al. 2012 mixing matrix parameters
 
-# Fraction choosing assortatively by age (epsilon_A in the paper)
+# fraction choosing assortatively by age (epsilon_A in the paper)
 EPSILON_A = 0.7
-# Fraction choosing assortatively by sexual activity class (epsilon_S in the paper)
+# fraction choosing assortatively by sexual activity class (epsilon_S in the paper)
 EPSILON_S = 0.3
 
 # Age-Assortative Matrix (A_mix): Simplified from original
@@ -175,6 +178,8 @@ class SimulationResults:
 
     prevalence: list[float]
     cancer_incidence: list[float]
+    final_prevalence_by_age: Optional[Dict[str, float]] = None  # Final prevalence per age band
+    final_prevalence_by_race: Optional[Dict[str, float]] = None  # Final prevalence per race
 
     def plot_prevalence_curve(self, show: bool = True, save_path: Optional[str] = None):
         plt.figure(figsize=(10, 6))
@@ -203,13 +208,19 @@ def run_simulation(
     *,
     population_size: int = 1000,
     partners_per_step: int = 5,
-    BETA_SCALING_FACTOR_C: float = 0.001, # Increased 10x to sustain endemic transmission
+    BETA_SCALING_FACTOR_C: float = 0.05, # Calibrated for endemic persistence with realistic age-stratified transmission
     seed: Optional[int] = None,
+
+    #needs to be calibrated and looked at later
     # Optional per-race overrides: mapping race -> coverage (0-1) and race -> annual screening uptake (0-1)
     coverage_by_race: Optional[Dict[str, float]] = None,
     screening_by_race: Optional[Dict[str, float]] = None,
     # Probability that a screening event detects & clears infection when it occurs
     screening_detection_effectiveness: float = 0.9,
+    # Initial prevalence (fraction of population infected at t=0). If None, uses default small seeding (10 individuals).
+    initial_prevalence: Optional[float] = None,
+    # Optional list of length NUM_AGE_BANDS giving initial prevalence per age band (fractions 0-1).
+    initial_prevalence_by_age: Optional[list[float]] = None,
 ) -> SimulationResults:
     """
     Run an HPV transmission simulation with the revised, heterogeneous, age-activity mixing matrix.
@@ -217,7 +228,6 @@ def run_simulation(
     if seed is not None:
         np.random.seed(seed)
 
-    # --- POPULATION INITIALIZATION (Modified to include sexual activity class) ---
     # synthesize_population is assumed to be able to handle these groups
     pop: Population = synthesize_population(
         n=population_size,
@@ -247,14 +257,18 @@ def run_simulation(
         p=SEX_ACTIVITY_DISTRIBUTION
     )
 
+<<<<<<< HEAD
     # The average number of partners offered per step is now dependent on the activity class.
     ACTIVITY_PARTNER_MULTIPLIER = np.array([0, 1, 2.508, 6.223])
+=======
+    # avg number of partners per step is now heterogeneous based on activity class
+    ACTIVITY_PARTNER_MULTIPLIER = np.array([1, 2, 4, 8])
+>>>>>>> ed4ecb7a (Working on calibration transmission and clearance; add age-stratified initial seeding and per-age prevalence reporting)
 
-    # Partnerships offered by the agent in this timestep, dependent on their activity class.
+    # partnerships offered by the agent in this timestep, dependent on their activity class.
     partnerships_offered_per_agent = ACTIVITY_PARTNER_MULTIPLIER[sex_activity_idx]
 
-    # --- CALCULATE REVISED MIXING MATRIX ---
-    # This calculation is run once before the simulation loop.
+    # this calculation is run once before the simulation loop.
     REVISED_MIXING_MATRIX = calculate_mixing_matrix(
         N,
         age_band_idx,
@@ -262,28 +276,42 @@ def run_simulation(
         partnerships_offered_per_agent
     )
 
-    # --- PER-AGENT PARAMETERS ---
     # The base transmission rate is now scaled by the ACTIVITY_PARTNER_MULTIPLIER (heterogeneity)
     # The overall beta (BETA_PER_AGENT) is the calibration factor * age effect * activity effect
     BETA_PER_AGENT = BETA_SCALING_FACTOR_C * RELATIVE_CONTACT_BY_AGE_BAND[age_band_idx]
     clearance_per_agent = CLEARANCE_BY_AGE_BAND[age_band_idx]
 
-    # --- INITIALIZE STATE VARIABLES ---
+    # state variables
     infected = np.zeros(N, dtype=bool)
     time_infected = np.zeros(N, dtype=int)
     cancerous = np.zeros(N, dtype=bool)
 
-    num_initial = 10
-    initial_indices = np.random.choice(N, size=num_initial, replace=False)
-    infected[initial_indices] = True
-    time_infected[initial_indices] = 1
+    if initial_prevalence_by_age is not None:
+        probs = np.array(initial_prevalence_by_age, dtype=float)
+        if probs.shape[0] != NUM_AGE_BANDS:
+            raise ValueError(f"initial_prevalence_by_age must have length {NUM_AGE_BANDS}")
+        # assign infection per-agent with Bernoulli draw based on their age-band probability
+        draw = np.random.rand(N)
+        agent_probs = probs[age_band_idx]
+        infected = draw < agent_probs
+        time_infected[infected] = 1
+    else:
+        if initial_prevalence is not None:
+            # translate prevalence fraction to integer initial infected count
+            num_initial = max(1, int(np.round(initial_prevalence * N)))
+        else:
+            num_initial = 10
+
+        initial_indices = np.random.choice(N, size=num_initial, replace=False)
+        infected[initial_indices] = True
+        time_infected[initial_indices] = 1
 
     prevalence = []
     cancer_incidence = []
 
     for t in range(steps):
 
-        # --- PARTNER SELECTION & TRANSMISSION ---
+        # partner selection and transmission
         currently_infected = np.where(infected)[0]
 
         for i in currently_infected:
@@ -305,7 +333,7 @@ def run_simulation(
             # Identify all potential partners' flat indices
             all_partner_flat_indices = np.arange(NUM_AGE_BANDS * NUM_SEX_CLASSES)
 
-            # --- SIMPLIFIED PARTNER SELECTION WITH MIXING MATRIX ---
+            # begin partner selection with mixing matrix
 
             # For simplicity and to integrate the matrix, we'll revert to finding agents
             # whose characteristics match the mix.
@@ -337,7 +365,7 @@ def run_simulation(
             if partner_agent_probabilities.sum() == 0:
                 continue
 
-            # Normalize and sample from the entire population
+            # normalize and sample from the entire population
             partner_agent_probabilities /= partner_agent_probabilities.sum()
 
 
@@ -350,7 +378,6 @@ def run_simulation(
                 p=partner_agent_probabilities[available_partners],
                 replace=False
             )
-            # --- END SIMPLIFIED PARTNER SELECTION WITH MIXING MATRIX ---
 
             for p in partners:
                 if infected[p] or cancerous[p]:
@@ -363,25 +390,8 @@ def run_simulation(
                     infected[p] = True
                     time_infected[p] = 0
 
-        # --- CLEARANCE, TIME, AND CANCER PROGRESSION ---
+        # clearance, progression, and cancer progression
 
-        # 0. Screening detection: screened agents may be tested this timestep
-        # and cleared with some effectiveness. Screening_prob_monthly is the
-        # per-agent monthly probability of being screened/detected.
-        currently_infected = np.where(infected)[0]
-        if currently_infected.size > 0:
-            detect_rand = np.random.rand(currently_infected.size)
-            detect_mask = detect_rand < screening_prob_monthly[currently_infected]
-            if detect_mask.any():
-                detected_idxs = currently_infected[detect_mask]
-                # treatment success
-                treat_rand = np.random.rand(detected_idxs.size)
-                cleared_by_screen = detected_idxs[treat_rand < screening_detection_effectiveness]
-                if cleared_by_screen.size > 0:
-                    infected[cleared_by_screen] = False
-                    time_infected[cleared_by_screen] = 0
-
-        # 1. Progression to Cancer *** ALSO could be fixed and calibrated*** rn using just case/total pop for probability but could be improved
         progression_pool = np.where(infected & ~cancerous)[0]
 
         if progression_pool.size > 0:
@@ -410,13 +420,29 @@ def run_simulation(
         # 3. Update Time Infected
         time_infected[infected] += 1
 
-        # --- METRIC CALCULATION ---
         prevalence.append(float(infected.mean()))
         cancer_incidence.append(float(cancerous.mean()))
 
+    # Compute final prevalence by age group and by race
+    final_prev_by_age = {}
+    for age_idx in range(NUM_AGE_BANDS):
+        age_lo, age_hi = AGE_BANDS[age_idx]
+        mask = (age_band_idx == age_idx)
+        if mask.sum() > 0:
+            final_prev_by_age[f"{age_lo}-{age_hi}"] = float(infected[mask].mean())
+
+    final_prev_by_race = {}
+    if "race" in pop_df.columns:
+        for race in pop_df["race"].unique():
+            mask = (pop_df["race"] == race).to_numpy()
+            if mask.sum() > 0:
+                final_prev_by_race[race] = float(infected[mask].mean())
+
     return SimulationResults(
         prevalence=prevalence,
-        cancer_incidence=cancer_incidence
+        cancer_incidence=cancer_incidence,
+        final_prevalence_by_age=final_prev_by_age if final_prev_by_age else None,
+        final_prevalence_by_race=final_prev_by_race if final_prev_by_race else None
     )
 
 
@@ -440,6 +466,21 @@ def _parse_args() -> argparse.Namespace:
         type=float,
         default=0.0001, # New default reflecting the much higher transmission capacity of the heterogeneous network
         help="Calibration scaling factor (C) for transmission beta.",
+    )
+    parser.add_argument(
+        "--initial-prevalence",
+        dest="initial_prevalence",
+        type=float,
+        default=None,
+        help="Initial infected fraction of the population (0-1). If set, seeds that fraction at t=0.",
+    )
+    parser.add_argument(
+        "--initial-prevalence-by-age",
+        dest="initial_prevalence_by_age",
+        type=str,
+        default=None,
+        help=("Comma-separated list of initial prevalence fractions for each age band "
+              f"(length {NUM_AGE_BANDS}). Example: '0.0,0.129,0.185,0.06,0.03'"),
     )
     parser.add_argument(
         "--N",
@@ -469,9 +510,26 @@ def main():
         population_size=args.population_size,
         seed=args.seed,
         BETA_SCALING_FACTOR_C=args.BETA_SCALING_FACTOR_C,
+        initial_prevalence=args.initial_prevalence,
+        initial_prevalence_by_age=(None if args.initial_prevalence_by_age is None else [float(x) for x in args.initial_prevalence_by_age.split(",")]),
     )
 
     results.plot_prevalence_curve(show=True)
+
+    # Print final prevalence by age group
+    if results.final_prevalence_by_age:
+        print("\n=== Final HPV Prevalence by Age Group ===")
+        for age_group, prev in results.final_prevalence_by_age.items():
+            print(f"  Age {age_group}: {prev:.4f} ({prev*100:.2f}%)")
+
+    # Print final prevalence by race
+    if results.final_prevalence_by_race:
+        print("\n=== Final HPV Prevalence by Race ===")
+        for race, prev in results.final_prevalence_by_race.items():
+            print(f"  {race}: {prev:.4f} ({prev*100:.2f}%)")
+
+    print(f"\n=== Overall Final Prevalence ===")
+    print(f"  {results.prevalence[-1]:.4f} ({results.prevalence[-1]*100:.2f}%)")
 
     # Write basic run metadata for reproducibility
     meta = {
