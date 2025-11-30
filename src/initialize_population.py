@@ -51,6 +51,29 @@ def _parse_age_group_to_range(age_group: str) -> Tuple[int, int]:
     }
     return mapping.get(label, (0, 95))
 
+def calibrate():
+    df = pd.read_csv("data/raw/NSFG_2022_2023_FemRespPUFData.csv")
+    df1 = df[["AGE_R","P1YHSAGE"]].dropna()
+    df1['age_group'] = pd.cut(df1['AGE_R'], bins=[0,15,25,35,45,99], labels=['0-14', '15-24', '25-34', '35-44', '45+'], right=False)
+    df1['partners'] = pd.cut(df1['P1YHSAGE'], bins=[0,15,25,35,45,99], labels=['0-14', '15-24', '25-34', '35-44', '45+'], right=False)
+    print(pd.crosstab(df1['age_group'], df1['partners']))
+    df1 = pd.read_csv("data/raw/NSFG_2022_2023_MaleRespPUFData.csv")
+    df2 = df1[["OPPYEARNUM", "SAMYEARNUM"]].dropna(subset=['OPPYEARNUM', 'SAMYEARNUM'], how='all')
+    df2 = df2.fillna(0)
+    df2['sum'] = df2['OPPYEARNUM'] + df2['SAMYEARNUM']
+    df2 = df2.drop(columns=['OPPYEARNUM', 'SAMYEARNUM'])
+    df = df[["OPPYEARNUM", "SAMYEARNUM"]].dropna(subset=['OPPYEARNUM', 'SAMYEARNUM'], how='all')
+    df = df.fillna(0)
+    df['sum'] = df['OPPYEARNUM'] + df['SAMYEARNUM']
+    df = df.drop(columns=['OPPYEARNUM', 'SAMYEARNUM'])
+    df = df['sum'].value_counts() + df2['sum'].value_counts()
+    df = df.dropna()
+    df = df.to_frame().reset_index()
+    df = df[df['sum'] < 11]
+    df['count_group'] = pd.cut(df['sum'], bins=[0,1,2,5,11], labels=['0','1','2-4', '5-10'], right=False)
+    df = df.groupby('count_group')['count'].sum().reset_index()
+    df['count'] = df['count']/df['count'].sum()
+    print(df)
 
 def _load_age_sex_distribution(csv_path: Optional[Path] = None) -> pd.DataFrame:
     """Load the age-sex distribution CSV.

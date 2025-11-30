@@ -28,8 +28,7 @@ NUM_SEX_CLASSES = len(SEX_ACTIVITY_CLASSES)
 
 # Distribution of population across the 4 sexual activity classes (e.g., 60% Low, 30% Mod, 7% Mod-High, 3% High)
 # This is a critical input parameter based on survey data (like NATSAL/NSSHB)
-# NOTE: This distribution is simplified and should be calibrated to real data.
-SEX_ACTIVITY_DISTRIBUTION = np.array([0.60, 0.30, 0.07, 0.03])
+SEX_ACTIVITY_DISTRIBUTION = np.array([0.124577, 0.732530, 0.112282, 0.030611])
 
 
 def age_to_band_index(age: int) -> int:
@@ -66,10 +65,10 @@ EPSILON_S = 0.3
 # 5 rows (i, index of choosing agent) x 5 columns (j, index of partner age)
 AGE_MIXING_PREFERENCE = np.array([
     [1.0, 0.0, 0.0, 0.0, 0.0], # 0-14 (only mix with self, though not active)
-    [0.3, 1.0, 0.7, 0.0, 0.0], # 15-24
-    [0.0, 0.7, 1.0, 0.6, 0.0], # 25-34
-    [0.0, 0.0, 0.6, 1.0, 0.4], # 35-44
-    [0.0, 0.0, 0.0, 0.4, 1.0], # 45+
+    [1, 307, 56, 3, 8], # 15-24
+    [2, 449, 580, 118, 46], # 25-34
+    [1, 256, 493, 332, 114], # 35-44
+    [0, 82, 143, 148, 114] # 45+
 ])
 
 # Normalize the AGE_MIXING_PREFERENCE matrix by row (so each row sums to 1) for easier use later
@@ -249,8 +248,7 @@ def run_simulation(
     )
 
     # The average number of partners offered per step is now dependent on the activity class.
-    # **** Needs to be calibrated ****
-    ACTIVITY_PARTNER_MULTIPLIER = np.array([1, 4, 10, 30])
+    ACTIVITY_PARTNER_MULTIPLIER = np.array([0, 1, 2.508, 6.223])
 
     # Partnerships offered by the agent in this timestep, dependent on their activity class.
     partnerships_offered_per_agent = ACTIVITY_PARTNER_MULTIPLIER[sex_activity_idx]
