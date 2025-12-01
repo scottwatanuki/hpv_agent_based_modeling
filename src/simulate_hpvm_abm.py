@@ -21,9 +21,7 @@ NUM_AGE_BANDS = len(AGE_BANDS)
 SEX_ACTIVITY_CLASSES = ["Low", "Mod", "Mod-High", "High"]
 NUM_SEX_CLASSES = len(SEX_ACTIVITY_CLASSES)
 
-# has been calculated from combined NSFG data (2008-2019) for ages 15-44 --> needs to be calibrated
 SEX_ACTIVITY_DISTRIBUTION = np.array([0.54, 0.23, 0.17, 0.06])
-# normalize to ensure it sums to 1
 SEX_ACTIVITY_DISTRIBUTION = SEX_ACTIVITY_DISTRIBUTION / SEX_ACTIVITY_DISTRIBUTION.sum()
 
 
@@ -34,29 +32,17 @@ def age_to_band_index(age: int) -> int:
             return i
     return NUM_AGE_BANDS - 1
 
-# transmission rate scaling factor (C) to calibrate overall beta --> needs to be calibrated
 RELATIVE_CONTACT_BY_AGE_BAND = np.array([0.00, 1.00, 0.70, 0.40, 0.20])
 
-# clearance - some hpv resolves on its own
-# reduced further to maintain ~3.9% endemic prevalence matching hpv 16/18 in general population
 CLEARANCE_BY_AGE_BAND = np.array([0.00, 0.008, 0.006, 0.005, 0.003])
 
-# cancer progression probability per month of infection duration --> needs to be calibrated
-# calculated from annual progression rate in atlanta from current data
 PROB_PROGRESS_TO_CANCER = 0.004167
 
-# implementation of Walker et al. 2012 mixing matrix parameters
 
-# fraction choosing assortatively by age (epsilon_A in the paper)
 EPSILON_A = 0.7
-# fraction choosing assortatively by sexual activity class (epsilon_S in the paper)
 EPSILON_S = 0.3
 
-# Age-Assortative Matrix (A_mix): Simplified from original
-# This matrix will ONLY be used for the non-proportional component of the mixing (Semi-Assortative).
-# We use a semi-assortative model where partners are preferentially chosen from adjacent age bands.
-# A simplified semi-assortative probability distribution centered around age difference 0
-# 5 rows (i, index of choosing agent) x 5 columns (j, index of partner age)
+
 AGE_MIXING_PREFERENCE = np.array([
     [1.0, 0.0, 0.0, 0.0, 0.0], # 0-14 (only mix with self, though not active)
     [1, 307, 56, 3, 8], # 15-24
@@ -65,7 +51,6 @@ AGE_MIXING_PREFERENCE = np.array([
     [0, 82, 143, 148, 114] # 45+
 ])
 
-# Normalize the AGE_MIXING_PREFERENCE matrix by row (so each row sums to 1) for easier use later
 for i in range(NUM_AGE_BANDS):
     row_sum = AGE_MIXING_PREFERENCE[i].sum()
     if row_sum > 0:
@@ -83,81 +68,47 @@ def calculate_mixing_matrix(N: int,
 
     N_i,h,j,m = NUM_AGE_BANDS, NUM_SEX_CLASSES, NUM_AGE_BANDS, NUM_SEX_CLASSES (5x4x5x4)
     """
-
-    # 1. Calculate P_k'jm (Total Partnerships Offered by subgroup j, m)
-    # P_k'jm = N_k'jm * c_k'jm (Population in group * Average partners in group)
-    # First, aggregate the total partnership offerings (P_k'jm) for each of the 20 subgroups (age x activity)
     P_subgroup = np.zeros((NUM_AGE_BANDS, NUM_SEX_CLASSES))
-
-    # Iterate through all agents to sum up total partnerships offered in each subgroup
     for i in range(N):
         age_i = age_band_idx[i]
         class_h = sex_activity_idx[i]
         P_subgroup[age_i, class_h] += partnerships_offered_per_agent[i]
 
-    # 2. Calculate Denominators (Sums from Walker's Equation 16)
-
-    # Sum over all age groups (Sum_alpha P_k'alpha, m) for Term 3 (A_P and S_A)
-    # Result is a vector 1xNUM_SEX_CLASSES
     sum_over_age = P_subgroup.sum(axis=0)
-
-    # Sum over all sex activity classes (Sum_beta P_k'j, beta) for Term 2 (A_A and S_P)
-    # Result is a vector NUM_AGE_BANDS x 1
     sum_over_class = P_subgroup.sum(axis=1)
-
-    # Sum over all subgroups (Sum_alpha Sum_beta P_k'alpha, beta) for Term 4 (A_P and S_P)
-    # Result is a scalar
     sum_total = P_subgroup.sum()
-
-    # Initialize the 4D Mixing Matrix: rho_kihjm (Agent i, class h -> Partner j, class m)
-    # In this implementation, the matrix will be flattened to 2D for easier indexing in the main loop:
-    # M[Source Subgroup Index] -> M[Partner Subgroup Index]
-    # Total subgroups = 5 * 4 = 20
     M = np.zeros((NUM_AGE_BANDS * NUM_SEX_CLASSES, NUM_AGE_BANDS * NUM_SEX_CLASSES))
+    for i in range(NUM_AGE_BANDS): 
+        for h in range(NUM_SEX_CLASSES): 
+            source_idx = i * NUM_SEX_CLASSES + h 
 
-    # Iterate through all 20 * 20 possible subgroup transitions (Source: i, h -> Target: j, m)
-    for i in range(NUM_AGE_BANDS): # Source Age Index
-        for h in range(NUM_SEX_CLASSES): # Source Class Index
-            source_idx = i * NUM_SEX_CLASSES + h # Flattened source index
-
-            for j in range(NUM_AGE_BANDS): # Target Age Index
-                for m in range(NUM_SEX_CLASSES): # Target Class Index
-                    target_idx = j * NUM_SEX_CLASSES + m # Flattened target index
+            for j in range(NUM_AGE_BANDS):
+                for m in range(NUM_SEX_CLASSES): 
+                    target_idx = j * NUM_SEX_CLASSES + m 
 
                     rho = 0.0
                     P_jm = P_subgroup[j, m] # P_k'jm
 
-                    # Term 1: Assortative by Age (A_A) and Assortative by Class (S_A)
-                    # P(A_A & S_A) * delta_ij * delta_hm
                     term1 = EPSILON_A * EPSILON_S * (1 if i == j and h == m else 0.0)
                     rho += term1
 
-                    # Term 2: Assortative by Age (A_A) and Proportional by Class (S_P)
-                    # P(A_A & S_P) * [P_k'jm / Sum_beta P_k'j, beta] * delta_ij
                     term2 = 0.0
                     if i == j and sum_over_class[j] > 0:
                         term2 = EPSILON_A * (1.0 - EPSILON_S) * (P_jm / sum_over_class[j])
                     rho += term2
 
-                    # Term 3: Proportional by Age (A_P) and Assortative by Class (S_A)
-                    # P(A_P & S_A) * [P_k'jm / Sum_alpha P_k'alpha, m] * delta_hm
                     term3 = 0.0
                     if h == m and sum_over_age[m] > 0:
                         term3 = (1.0 - EPSILON_A) * EPSILON_S * (P_jm / sum_over_age[m])
                     rho += term3
 
-                    # Term 4: Proportional by Age (A_P) and Proportional by Class (S_P)
-                    # P(A_P & S_P) * [P_k'jm / Sum_total P_k'alpha, beta]
                     term4 = 0.0
                     if sum_total > 0:
                         term4 = (1.0 - EPSILON_A) * (1.0 - EPSILON_S) * (P_jm / sum_total)
                     rho += term4
 
                     M[source_idx, target_idx] = rho
-
-    # Normalize matrix rows: Each row M[source_idx, :] must sum to 1.
     row_sums = M.sum(axis=1)
-    # Only normalize rows that have positive sum (non-sexually active groups will be 0)
     M[row_sums > 0] /= row_sums[row_sums > 0, np.newaxis]
 
     return M
@@ -174,7 +125,6 @@ class SimulationResults:
 
     def plot_prevalence_curve(self, show: bool = True, save_path: Optional[str] = None):
         plt.figure(figsize=(10, 6))
-        # Updated plot function to display both metrics
         plt.plot(self.prevalence, color="tab:blue", linewidth=2, label="% Currently Infected (Prevalence)")
         plt.plot(self.cancer_incidence, color="tab:red", linestyle='--', linewidth=2, label="% Total Cancer Cases (Cumulative Incidence)")
 
@@ -198,8 +148,8 @@ def run_simulation(
     steps: int = 300,
     *,
     population_size: int = 1000,
-    partners_per_step: int = 5,
-    BETA_SCALING_FACTOR_C: float = 0.05, # Calibrated for endemic persistence with realistic age-stratified transmission
+    partners_per_step: int = 1,
+    BETA_SCALING_FACTOR_C: float = 0.05,
     seed: Optional[int] = None,
 
     #needs to be calibrated and looked at later
@@ -260,7 +210,8 @@ def run_simulation(
     )
 
     # avg number of partners per step is now heterogeneous based on activity class
-    ACTIVITY_PARTNER_MULTIPLIER = np.array([1, 2, 4, 8])
+    # calibrated to NSFG data: mean ~1.5 partners/year (0.125/month) across all sexually active adults
+    ACTIVITY_PARTNER_MULTIPLIER = np.array([0.9, 1.2, 1.8, 3.0])
 
     # partnerships offered by the agent in this timestep, dependent on their activity class.
     partnerships_offered_per_agent = ACTIVITY_PARTNER_MULTIPLIER[sex_activity_idx]
@@ -305,6 +256,9 @@ def run_simulation(
 
     prevalence = []
     cancer_incidence = []
+    
+    # track actual partner counts per agent per timestep
+    partner_counts_per_agent = np.zeros(N, dtype=int)
 
     # detect sex/gender column if available so we can restrict contacts to opposite sex
     sex_col = None
@@ -392,7 +346,11 @@ def run_simulation(
                 replace=False
             )
 
+            # track actual partnerships formed
+            partner_counts_per_agent[i] += len(partners)
             for p in partners:
+                partner_counts_per_agent[p] += 1
+                
                 if infected[p] or cancerous[p]:
                     continue
 
@@ -449,6 +407,16 @@ def run_simulation(
 
         prevalence.append(float(infected.mean()))
         cancer_incidence.append(float(cancerous.mean()))
+
+    avg_partners_per_month = partner_counts_per_agent / steps
+    print(f"\n=== Partner Statistics ===")
+    print(f"Mean partners/month: {avg_partners_per_month.mean():.2f}")
+    print(f"Median partners/month: {np.median(avg_partners_per_month):.2f}")
+    print(f"Min: {avg_partners_per_month.min():.2f}, Max: {avg_partners_per_month.max():.2f}")
+    print(f"25th percentile: {np.percentile(avg_partners_per_month, 25):.2f}")
+    print(f"75th percentile: {np.percentile(avg_partners_per_month, 75):.2f}")
+    print(f"90th percentile: {np.percentile(avg_partners_per_month, 90):.2f}")
+    print(f"95th percentile: {np.percentile(avg_partners_per_month, 95):.2f}")
 
     # Compute final prevalence by age group and by race
     final_prev_by_age = {}
@@ -572,7 +540,8 @@ def main():
         "EPSILON_A": EPSILON_A,
         "EPSILON_S": EPSILON_S,
         "SEX_ACTIVITY_DISTRIBUTION": SEX_ACTIVITY_DISTRIBUTION.tolist(),
-        "partners_per_step": 2, # Baseline partner count
+        "partners_per_step": 1,
+        "ACTIVITY_PARTNER_MULTIPLIER": [0.9, 1.2, 1.8, 3.0],
     }
     write_run_metadata(meta, out_path=None)
 
