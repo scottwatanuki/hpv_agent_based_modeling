@@ -1,15 +1,23 @@
 {
-  "entrypoint": "simulate_hpvm_abm.py",
-  "coverage": 0.7,
+  "entrypoint": "simulate_hpvm_revised.py",
+  "coverage": 0.4,
   "efficacy": 0.9,
-  "timesteps": 5,
-  "population_size": 1000,
-  "seed": 1,
-  "beta": 0.02,
-  "clearance_prob": 0.05,
-  "partners_per_step": 5,
-  "timestamp": "2025-11-03T21:46:26.718103+00:00",
-  "python_version": "3.13.2",
-  "platform": "macOS-26.0.1-arm64-arm-64bit-Mach-O",
-  "git_sha": "59ee94dfd338ad8195d4ac9d586544ca4f0d0cc7"
+  "timesteps": 48,
+  "population_size": 800,
+  "seed": 11,
+  "BETA_SCALING_FACTOR_C": 0.1,
+  "PROB_PROGRESS_TO_CANCER": 0.004167,
+  "EPSILON_A": 0.7,
+  "EPSILON_S": 0.3,
+  "SEX_ACTIVITY_DISTRIBUTION": [
+    0.54,
+    0.23,
+    0.17,
+    0.06
+  ],
+  "partners_per_step": 1,
+  "timestamp": "2025-12-01T19:17:21.408359+00:00",
+  "python_version": "3.12.1",
+  "platform": "Linux-6.8.0-1030-azure-x86_64-with-glibc2.39",
+  "git_sha": "aed8f03c04bf9186ba95e9b42e7cb162b918a483"
 }

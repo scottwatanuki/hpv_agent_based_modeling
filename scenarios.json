@@ -1,0 +1,44 @@
+[
+  {
+    "name": "baseline_uniform",
+    "coverage": 0.6,
+    "efficacy": 0.9,
+    "timesteps": 300,
+    "population_size": 1500,
+    "seed": 42,
+    "initial_prevalence_by_age": [0.0, 0.185, 0.11, 0.06, 0.05]
+  },
+  {
+    "name": "race_stratified_vaccination",
+    "coverage": 0.6,
+    "efficacy": 0.9,
+    "timesteps": 300,
+    "population_size": 1500,
+    "seed": 43,
+    "initial_prevalence_by_age": [0.0, 0.185, 0.11, 0.06, 0.05],
+    "coverage_by_race": {
+      "White": 0.75,
+      "Black": 0.45,
+      "Hispanic": 0.55
+    }
+  },
+  {
+    "name": "race_stratified_with_screening",
+    "coverage": 0.6,
+    "efficacy": 0.9,
+    "timesteps": 300,
+    "population_size": 1500,
+    "seed": 44,
+    "initial_prevalence_by_age": [0.0, 0.185, 0.11, 0.06, 0.05],
+    "coverage_by_race": {
+      "White": 0.75,
+      "Black": 0.45,
+      "Hispanic": 0.55
+    },
+    "screening_by_race": {
+      "White": 0.8,
+      "Black": 0.5,
+      "Hispanic": 0.6
+    }
+  }
+]
