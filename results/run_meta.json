@@ -1,11 +1,11 @@
 {
   "entrypoint": "simulate_hpvm_revised.py",
-  "coverage": 0.2,
+  "coverage": 0.4,
   "efficacy": 0.9,
-  "timesteps": 300,
-  "population_size": 1500,
-  "seed": 42,
-  "BETA_SCALING_FACTOR_C": 0.0001,
+  "timesteps": 24,
+  "population_size": 800,
+  "seed": 7,
+  "BETA_SCALING_FACTOR_C": 0.06,
   "PROB_PROGRESS_TO_CANCER": 0.004167,
   "EPSILON_A": 0.7,
   "EPSILON_S": 0.3,
@@ -16,8 +16,8 @@
     0.06
   ],
   "partners_per_step": 2,
-  "timestamp": "2025-11-29T16:25:56.928342+00:00",
-  "python_version": "3.12.4",
-  "platform": "macOS-10.16-x86_64-i386-64bit",
-  "git_sha": "4b8f90ad2b1045b6893649c83fb7beadb50c3ff3"
+  "timestamp": "2025-12-01T18:22:24.940229+00:00",
+  "python_version": "3.12.1",
+  "platform": "Linux-6.8.0-1030-azure-x86_64-with-glibc2.39",
+  "git_sha": "b9190bc9a32a4f5201faaf84f407505a87c62df1"
 }

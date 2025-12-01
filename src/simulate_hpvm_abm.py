@@ -4,36 +4,27 @@ from typing import Optional, Dict
 from pathlib import Path
 
 from src.analysis_utils import write_run_metadata
-from src.initialize_population import synthesize_population, Population
+from src.initialize_population import synthesize_population, Population, load_race_distribution_from_csv, build_vaccination_coverage_map, build_screening_rates_by_race
 
 import numpy as np
 import matplotlib.pyplot as plt
 
 AGE_BANDS = [
-    (0, 14),   # 0
-    (15, 24),  # 1
-    (25, 34),  # 2
-    (35, 44),  #
-    (45, 100), # 4
+    (0, 14),   
+    (15, 24),  
+    (25, 34),  
+    (35, 44),  
+    (45, 100), 
 ]
 NUM_AGE_BANDS = len(AGE_BANDS)
 
-# Sexual Activity Classes (Based on partner acquisition rates, simplified from NATSAL/POLYMOD) - Walker et Al. source will talk ab in report
-# 0: Low, 1: Moderate, 2: Mod-High, 3: High
 SEX_ACTIVITY_CLASSES = ["Low", "Mod", "Mod-High", "High"]
 NUM_SEX_CLASSES = len(SEX_ACTIVITY_CLASSES)
 
-<<<<<<< HEAD
-# Distribution of population across the 4 sexual activity classes (e.g., 60% Low, 30% Mod, 7% Mod-High, 3% High)
-# This is a critical input parameter based on survey data (like NATSAL/NSSHB)
-SEX_ACTIVITY_DISTRIBUTION = np.array([0.124577, 0.732530, 0.112282, 0.030611])
-=======
-
 # has been calculated from combined NSFG data (2008-2019) for ages 15-44 --> needs to be calibrated
 SEX_ACTIVITY_DISTRIBUTION = np.array([0.54, 0.23, 0.17, 0.06])
-# Normalize to ensure it sums to 1
+# normalize to ensure it sums to 1
 SEX_ACTIVITY_DISTRIBUTION = SEX_ACTIVITY_DISTRIBUTION / SEX_ACTIVITY_DISTRIBUTION.sum()
->>>>>>> ed4ecb7a (Working on calibration transmission and clearance; add age-stratified initial seeding and per-age prevalence reporting)
 
 
 def age_to_band_index(age: int) -> int:
@@ -47,8 +38,8 @@ def age_to_band_index(age: int) -> int:
 RELATIVE_CONTACT_BY_AGE_BAND = np.array([0.00, 1.00, 0.70, 0.40, 0.20])
 
 # clearance - some hpv resolves on its own
-# Reduced from 0.06 to allow more endemic persistence; 6% was too aggressive for 25-year models
-CLEARANCE_BY_AGE_BAND = np.array([0.00, 0.015, 0.010, 0.008, 0.005])
+# reduced further to maintain ~3.9% endemic prevalence matching hpv 16/18 in general population
+CLEARANCE_BY_AGE_BAND = np.array([0.00, 0.008, 0.006, 0.005, 0.003])
 
 # cancer progression probability per month of infection duration --> needs to be calibrated
 # calculated from annual progression rate in atlanta from current data
@@ -229,12 +220,23 @@ def run_simulation(
         np.random.seed(seed)
 
     # synthesize_population is assumed to be able to handle these groups
+    # load race distribution from csv and pass to synthesize_population
+    race_dist = load_race_distribution_from_csv("data/processed/atl_ga_demographics_cleaned.csv")
+    
+    # load comprehensive vaccination coverage map by race, sex, and age band
+    coverage_map = build_vaccination_coverage_map()
+    
+    # load screening rates by race (for women 25+)
+    screening_rates = build_screening_rates_by_race()
+    
     pop: Population = synthesize_population(
         n=population_size,
         coverage=coverage,
         seed=seed,
+        race_dist=race_dist,
+        coverage_by_race_sex_ageband=coverage_map,
         coverage_by_race=coverage_by_race,
-        screening_by_race=screening_by_race,
+        screening_by_race=screening_rates if screening_by_race is None else screening_by_race,
     )
     pop_df = pop.df
 
@@ -250,20 +252,15 @@ def run_simulation(
     else:
         screening_prob_monthly = np.zeros(N, dtype=float)
 
-    # NEW: Assign sexual activity class based on the defined distribution
+    # new: assign sexual activity class based on the defined distribution
     sex_activity_idx = np.random.choice(
         NUM_SEX_CLASSES,
         size=N,
         p=SEX_ACTIVITY_DISTRIBUTION
     )
 
-<<<<<<< HEAD
-    # The average number of partners offered per step is now dependent on the activity class.
-    ACTIVITY_PARTNER_MULTIPLIER = np.array([0, 1, 2.508, 6.223])
-=======
     # avg number of partners per step is now heterogeneous based on activity class
     ACTIVITY_PARTNER_MULTIPLIER = np.array([1, 2, 4, 8])
->>>>>>> ed4ecb7a (Working on calibration transmission and clearance; add age-stratified initial seeding and per-age prevalence reporting)
 
     # partnerships offered by the agent in this timestep, dependent on their activity class.
     partnerships_offered_per_agent = ACTIVITY_PARTNER_MULTIPLIER[sex_activity_idx]
@@ -309,6 +306,25 @@ def run_simulation(
     prevalence = []
     cancer_incidence = []
 
+    # detect sex/gender column if available so we can restrict contacts to opposite sex
+    sex_col = None
+    if "sex" in pop_df.columns:
+        sex_col = pop_df["sex"].to_numpy()
+    elif "gender" in pop_df.columns:
+        sex_col = pop_df["gender"].to_numpy()
+
+    # normalize sex values to lowercase strings when present
+    if sex_col is not None:
+        # convert bytes/objects to lowercase strings for robust comparison
+        sex_col = np.array([str(x).strip().lower() for x in sex_col])
+        # precompute boolean male indicator for fast opposite-sex masks
+        is_male = np.array([s.startswith("m") for s in sex_col], dtype=bool)
+    else:
+        is_male = None
+
+    # precompute each agent's flattened subgroup index (age x activity)
+    flat_idx_per_agent = age_band_idx * NUM_SEX_CLASSES + sex_activity_idx
+
     for t in range(steps):
 
         # partner selection and transmission
@@ -347,26 +363,23 @@ def run_simulation(
             if num_partners_to_find == 0:
                  continue
 
-            # We create a probability vector over the entire population (N) based on the mixing matrix.
-            # 1. Map each agent in the population (j) to their target subgroup (j_age, j_class)
-            # 2. Find the probability M[source_flat_idx, j_flat_idx]
+            # we create a probability vector over the entire population (n) based on the mixing matrix
+            # vectorized: prob(j) = m[source_flat_idx, flat_idx_per_agent[j]]
+            partner_agent_probabilities = REVISED_MIXING_MATRIX[source_flat_idx, flat_idx_per_agent].copy()
 
-            partner_agent_probabilities = np.zeros(N)
-            for j in range(N):
-                j_age = age_band_idx[j]
-                j_class = sex_activity_idx[j]
-                j_flat_idx = j_age * NUM_SEX_CLASSES + j_class
+            # apply opposite-sex constraint and exclude self
+            mask = np.ones(N, dtype=bool)
+            mask[i] = False
+            if is_male is not None:
+                mask &= (is_male != is_male[i])
+            partner_agent_probabilities[~mask] = 0.0
 
-                # Probability of choosing agent j is proportional to M[source, target]
-                partner_agent_probabilities[j] = REVISED_MIXING_MATRIX[source_flat_idx, j_flat_idx]
-
-            partner_agent_probabilities[i] = 0.0 # Exclude self
-
-            if partner_agent_probabilities.sum() == 0:
+            total_p = partner_agent_probabilities.sum()
+            if total_p == 0.0:
                 continue
 
             # normalize and sample from the entire population
-            partner_agent_probabilities /= partner_agent_probabilities.sum()
+            partner_agent_probabilities /= total_p
 
 
             available_partners = np.where(partner_agent_probabilities > 0)[0]
@@ -389,6 +402,20 @@ def run_simulation(
                 if np.random.rand() < p_eff:
                     infected[p] = True
                     time_infected[p] = 0
+
+        # screening: some infected are screened and cleared this month (women 25+ have nonzero rates)
+        if screening_prob_monthly is not None and screening_prob_monthly.size == N:
+            # draw who gets screened this month
+            got_screened = np.random.rand(N) < screening_prob_monthly
+            if np.any(got_screened):
+                # among screened, infections are detected/cleared with this effectiveness
+                screened_infected = got_screened & infected
+                if np.any(screened_infected):
+                    detected = np.random.rand(screened_infected.sum()) < screening_detection_effectiveness
+                    if detected.any():
+                        idxs = np.where(screened_infected)[0][detected]
+                        infected[idxs] = False
+                        time_infected[idxs] = 0
 
         # clearance, progression, and cancer progression
 
