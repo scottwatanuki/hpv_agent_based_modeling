@@ -130,7 +130,7 @@ write_prevalence_outputs(results.prevalence, prefix="baseline")
 
 ### Generate scenario comparisons
 ```bash
-python src/vaccination_scenarios.py -scenarios scenarios.json
+python src/vaccination_scenarios.py --scenarios scenarios.json
 ```
 
 Runs a simulation from simulate_hpvm_abm for each of the three different vaccination scenarios:
