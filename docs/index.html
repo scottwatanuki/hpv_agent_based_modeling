@@ -19,33 +19,95 @@
     <section id="summary">
       <h2>Summary</h2>
       <p>
-        This repository contains an agent-based model of HPV transmission and vaccination scenarios. The website links to the write-up, and software bundle. Replace this short paragraph with your own one-paragraph summary of the project and key results.
+        We built a lightweight agent-based model (ABM) of Human Papillomavirus (HPV) transmission tailored to the Atlanta Metropolitan Area to evaluate vaccination strategies. Using the open-source HPVsim framework, the model simulates individual demographics, sexual partnerships, age-specific routine and catch-up vaccination, per-partnership transmission, and natural clearance. We calibrated key elements with U.S. Census and CDC sources and ran scenario analyses varying vaccine coverage and efficacy to estimate reductions in HPV prevalence and incident infections. The codebase and report highlight policy-relevant insights for local public health planning.
       </p>
     </section>
 
     <section id="team">
       <h2>Team</h2>
-      <p>The project team:</p>
-      <ul>
-        <li>Anish Arora</li>
-        <li>Hailey Toeppner</li>
-        <li>Scott Watanuki</li>
-      </ul>
+      <div class="people-grid one-row">
+        <figure class="person">
+          <img src="assets/team/anish.jpeg" alt="Anish Arora" />
+          <figcaption>Anish Arora</figcaption>
+        </figure>
+        <figure class="person">
+          <img src="assets/team/hailey.jpeg" alt="Hailey Toeppner" />
+          <figcaption>Hailey Toeppner</figcaption>
+        </figure>
+        <figure class="person">
+          <img src="assets/team/scott.png" alt="Scott Watanuki" />
+          <figcaption>Scott Watanuki</figcaption>
+        </figure>
+      </div>
     </section>
 
     <section id="links">
       <h2>Downloads</h2>
       <ul>
-        <li><a href="assets/final_report.pdf">Write-up (PDF)</a> — copy `doc/final_report.pdf` into `docs/assets/final_report.pdf` so Pages can serve it.</li>
+        <li><a href="assets/final_report.pdf">Write-up (PDF)</a></li>
         <li><a href="assets/software.tar.gz">Software tarball</a></li>
       </ul>
     </section>
 
     <section id="results">
-      <h2>Key results (short)</h2>
-      <p>Summarize the main findings here (e.g., effect of vaccination scenarios on prevalence/incidence, key tables or figures).</p>
-      <p>If you want, link to figures in the repository's `results/figures/` directory:</p>
-      <p><a href="../results/figures/">Results figures directory</a></p>
+      <h2>Key results</h2>
+      <p>
+        Scenario analyses indicate that higher vaccination coverage and earlier, pre-exposure vaccination reduce modeled HPV prevalence and incident infections in Atlanta-like populations. Catch-up vaccination further lowers transmission in the short-to-medium term, with overall impact shaped by sexual mixing heterogeneity and vaccine efficacy. While cancer progression was not explicitly modeled, reductions in persistent infection translate to expected long-run prevention benefits; we provide a transparent, reproducible framework and policy-oriented discussion in the accompanying report.
+      </p>
+    </section>
+
+    <section id="figures">
+      <h2>Figures</h2>
+      <div class="figure-grid">
+        <div class="figure-card">
+          <a href="assets/figures/prevalence_figure_1.png" target="_blank" rel="noopener">
+            <img src="assets/figures/prevalence_figure_1.png" alt="Figure 1: HPV prevalence under vaccination scenarios" />
+          </a>
+          <div class="caption">Figure 1 — HPV prevalence under vaccination scenarios</div>
+        </div>
+
+        <div class="figure-card">
+          <a href="assets/figures/prevalence_baseline.png" target="_blank" rel="noopener">
+            <img src="assets/figures/prevalence_baseline.png" alt="Baseline scenario: HPV prevalence over time" />
+          </a>
+          <div class="caption">Baseline scenario — prevalence over time</div>
+        </div>
+
+        <div class="figure-card">
+          <a href="assets/figures/prevalence_baseline_uniform.png" target="_blank" rel="noopener">
+            <img src="assets/figures/prevalence_baseline_uniform.png" alt="Baseline uniform-mixing scenario: HPV prevalence over time" />
+          </a>
+          <div class="caption">Baseline (uniform mixing) — prevalence over time</div>
+        </div>
+
+        <div class="figure-card">
+          <a href="assets/figures/prevalence_race_stratified_vaccination.png" target="_blank" rel="noopener">
+            <img src="assets/figures/prevalence_race_stratified_vaccination.png" alt="Race-stratified vaccination scenario: HPV prevalence over time" />
+          </a>
+          <div class="caption">Race-stratified vaccination — prevalence</div>
+        </div>
+
+        <div class="figure-card">
+          <a href="assets/figures/prevalence_race_stratified_with_screening.png" target="_blank" rel="noopener">
+            <img src="assets/figures/prevalence_race_stratified_with_screening.png" alt="Race-stratified vaccination with screening scenario: HPV prevalence over time" />
+          </a>
+          <div class="caption">Race-stratified vaccination + screening — prevalence</div>
+        </div>
+
+        <div class="figure-card">
+          <a href="assets/figures/race_distribution.png" target="_blank" rel="noopener">
+            <img src="assets/figures/race_distribution.png" alt="Synthetic population race distribution" />
+          </a>
+          <div class="caption">Synthetic population — race distribution</div>
+        </div>
+
+        <div class="figure-card">
+          <a href="assets/figures/synthesized_age_hist.png" target="_blank" rel="noopener">
+            <img src="assets/figures/synthesized_age_hist.png" alt="Synthetic population age distribution" />
+          </a>
+          <div class="caption">Synthetic population — age distribution</div>
+        </div>
+      </div>
     </section>
   </main>
 
