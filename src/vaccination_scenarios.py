@@ -8,8 +8,8 @@ from typing import Any, Dict, List, Optional
 
 import pandas as pd
 
-from src.simulate_hpvm_abm import run_simulation
-from src.analysis_utils import write_prevalence_outputs, write_run_metadata
+from simulate_hpvm_abm import run_simulation
+from analysis_utils import write_prevalence_outputs, write_run_metadata
 
 
 ROOT = Path(__file__).resolve().parents[1]

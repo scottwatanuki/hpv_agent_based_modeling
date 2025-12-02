@@ -30,31 +30,31 @@ This repository is part of the **CSE 8803: Data Science for Epidemiology** cours
 
 ## 🗂️ Repository Structure
 ```
-HPV-ABM-Atlanta/
+hpv_agent_based_modeling/
 ├── data/
-│   ├── raw/                  # Public datasets (ACS, NHANES, NIS-Teen)
+│   ├── raw/                  # Public datasets (ACS, NSFG, NIS-Teen)
 │   ├── processed/            # Cleaned CSVs used for model initialization
 │   └── README.md             # Data dictionary and links to sources
 │
 ├── src/
 │   ├── initialize_population.py     # Create synthetic population from ACS data
-│   ├── generate_network.py          # Construct sexual contact network
 │   ├── simulate_hpvm_abm.py         # Core ABM simulation engine
 │   ├── vaccination_scenarios.py     # Functions for coverage/efficacy variations
 │   └── analysis_utils.py            # Aggregation, plots, and sensitivity analysis
-│
-├── notebooks/
-│   ├── exploratory_analysis.ipynb   # Data exploration and preprocessing
-│   ├── parameter_sensitivity.ipynb  # Example scenario evaluation
 │
 ├── results/
 │   ├── figures/                     # Generated plots (prevalence, incidence)
 │   └── summary_stats.csv            # Key metrics across scenarios
 │
-├── reports/
-│   ├── project_milestone.pdf
-│   └── final_report.pdf
+├── doc/
+│   ├── project_milestone.pdf        # Milestone report
+│   └── final_report.pdf             # Final report
 │
+├── docs/
+│   ├── assets/                      # Assets for the website
+│   ├── index.html                   # HTML for the website
+│   └── styles.css                   # CSS for the website
+|
 ├── requirements.txt
 ├── LICENSE
 └── README.md
@@ -67,10 +67,9 @@ HPV-ABM-Atlanta/
 | Dataset | Description | Source |
 |----------|--------------|--------|
 | **ACS (2022)** | Demographic distribution by age, sex, and race for Atlanta MSA. | U.S. Census Bureau |
-| **NHANES / NSFG** | Sexual behavior parameters (partner count, concurrency). | CDC / NCHS |
+| **NSFG** | Sexual behavior parameters (partner count, concurrency). | CDC / NCHS |
 | **CDC NIS-Teen (2023)** | HPV vaccination coverage by age and sex (state-level). | CDC |
-| **BRFSS (2022)** | Behavioral health indicators (planned integration). | CDC |
-| **Literature-derived parameters** | HPV transmission probabilities, clearance rates, vaccine efficacy. | Walboomers et al. (1999); Clifford et al. (2003); Stuart et al. (2024) |
+| **Literature-derived parameters** | HPV transmission probabilities, clearance rates, vaccine efficacy. |  Stuart et al. (2024); Walker et al. 2012 |
 
 All datasets used are **publicly available** and preprocessed under `data/processed/` for simulation initialization.
 
@@ -108,6 +107,7 @@ python src/simulate_hpvm_abm.py --coverage 0.7 --efficacy 0.9 --timesteps 120 --
 3) Outputs:
   - Figure: `results/figures/prevalence_baseline.png`
   - Summary CSV: `results/summary_stats_baseline.csv`
+  - JSON: `results/run_meta.json`
 
 ---
 
@@ -120,8 +120,8 @@ python src/simulate_hpvm_abm.py --coverage 0.7 --efficacy 0.9 --timesteps 120 --
 
 ### Example (inside Python)
 ```python
-from src.simulate_hpvm_abm import run_simulation
-from src.analysis_utils import write_prevalence_outputs
+from simulate_hpvm_abm import run_simulation
+from analysis_utils import write_prevalence_outputs
 
 results = run_simulation(coverage=0.7, efficacy=0.9, steps=120, seed=42)
 results.plot_prevalence_curve()
@@ -129,41 +129,39 @@ write_prevalence_outputs(results.prevalence, prefix="baseline")
 ```
 
 ### Generate scenario comparisons
-Coming soon (scaffold under development).
+```bash
+python src/vaccination_scenarios.py -scenarios scenarios.json
+```
 
+Runs a simulation from simulate_hpvm_abm for each of the three different vaccination scenarios:
+- Baseline Model
+- Race-Stratified Vaccination Model
+- Race-Stratified Vaccination Model with Screening
 ---
 
 ## 📊 Output
 - **Prevalence curves** over time by vaccination scenario  
-- **Incidence rate** of new infections per month  
+- **Incidence rate** of total cancer incidence
 - **Coverage–efficacy sensitivity plots**  
 - **Summary statistics CSV** for downstream analysis  
+- **Summary statistics JSON** for run parameters
 
 All output figures and tables are saved under `results/`.
 
-For the baseline quick start, you will see:
-- `results/figures/prevalence_baseline.png`
-- `results/summary_stats_baseline.csv`
-
-## 📁 Current implemented subset (Milestone 1)
-```
-hpv_agent_based_modeling/
-├── data/
-│   └── processed/
-│       └── ga_age_sex_cleaned.csv
-├── src/
-│   ├── initialize_population.py
-│   ├── simulate_hpvm_abm.py
-│   └── analysis_utils.py
-└── results/
-  ├── figures/
-  │   └── prevalence_baseline.png
-  └── summary_stats_baseline.csv
-```
+For the vaccination scenarios, you will see:
+- Baseline Figure: `results/figures/prevalence_baseline_uniform.png`
+- Race-Stratified Vaccination Figure: `results/figures/prevalence_race_stratified_vaccination.png`
+- Race-Stratified Vaccination Model with Screening Figure: `results/figures/prevalence_race_stratified_with_screening.png`
+- Baseline JSON: `results/run_meta_baseline_uniform.json`
+- Race-Stratified Vaccination JSON: `results/run_meta_race_stratified_vaccination.json`
+- Race-Stratified Vaccination Model with Screening JSON: `results/run_meta_race_stratified_with_screening.json`
+- Baseline CSV: `results/summary_stats_baseline_uniform.csv`
+- Race-Stratified Vaccination CSV: `results/summary_stats_race_stratified_vaccination.csv`
+- Race-Stratified Vaccination Model with Screening CSV: `results/summary_stats_race_stratified_with_screening.csv`
 
 ---
 
 ## 🧩 Limitations
-- Regional sexual behavior data for Atlanta are approximated using national survey priors (NHANES, NSFG).  
+- Regional sexual behavior data for Atlanta are approximated using national survey priors (NSFG).  
 - Vaccination behavior and network dynamics are modeled as static during simulation.  
-- Calibration and validation are ongoing as additional CDC and BRFSS data are incorporated.
+- Large numbers of agents and complicated scenarios run slowly 

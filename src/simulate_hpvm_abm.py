@@ -3,8 +3,8 @@ from dataclasses import dataclass
 from typing import Optional, Dict
 from pathlib import Path
 
-from src.analysis_utils import write_run_metadata
-from src.initialize_population import synthesize_population, Population, load_race_distribution_from_csv, build_vaccination_coverage_map, build_screening_rates_by_race
+from analysis_utils import write_run_metadata
+from initialize_population import synthesize_population, Population, load_race_distribution_from_csv, build_vaccination_coverage_map, build_screening_rates_by_race
 
 import numpy as np
 import matplotlib.pyplot as plt
